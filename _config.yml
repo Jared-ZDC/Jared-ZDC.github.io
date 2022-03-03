@@ -1,7 +1,7 @@
 # ---------------- #
 #   Main Configs   #
 # ---------------- #
-baseurl: /SpaceForJared
+baseurl: 
 url: https://Jared-ZDC.github.io/SpaceForJared
 date_format: "ordinal"
 title: Space for Jared Zhu
