@@ -4,10 +4,10 @@
 baseurl: 
 url: https://Jared-ZDC.github.io
 date_format: "ordinal"
-title: Space for Jared Zhu
-subtitle: "公众号：闷骚的程序员"
-description: "马壮的个人博客，公众号：闷骚的程序员"
-keywords: 码志, Zhuang Ma, mzlogin, mazhuang, 闷骚的程序员
+title: Jared Zhu's Space
+subtitle: "公众号：佝耕南阳"
+description: "Jared Zhu的个人博客，公众号：佝耕南阳"
+keywords: 性能, 理财, 思考, 人生
 timezone: Asia/Shanghai
 encoding: "utf-8"
 repository: Jared-ZDC/SpaceForJared
@@ -51,12 +51,12 @@ highlight_theme: github
 # ---------------- #
 #      Author      #
 # ---------------- #
-author: Zhuang Ma
+author: Jared Zhu
 organization: 
 organization_url: 
-github_username: mzlogin
-location: Wuhan, China
-email: chumpma@gmail.com
+github_username: Jared-ZDC
+location: changsha, China
+email: freejared@163.com
 
 # ---------------- #
 #    Navigation    #
