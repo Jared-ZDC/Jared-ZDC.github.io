@@ -296,6 +296,6 @@ if __name__ == "__main__":
     parser.add_argument("repo_name", help="repo_name")
     parser.add_argument(
         "--issue_number", help="issue_number", default=None, required=False
-    )
+    ) 
     options = parser.parse_args()
     main(options.github_token, options.repo_name, options.issue_number)
