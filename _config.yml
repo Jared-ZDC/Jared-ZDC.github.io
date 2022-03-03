@@ -140,10 +140,10 @@ comments_provider: gitalk
 #        client_secret: b42a4178e5fd4a7cf63189ef4b1453b05c375709
 # https://github.com/gitalk/gitalk#install
 gitalk:
-    owner: mzlogin
+    owner: Jared-ZDC
     repo: blog-comments
-    clientID: d2e1cbbd298958076462
-    clientSecret: b42a4178e5fd4a7cf63189ef4b1453b05c375709
+    clientID: d53ba6ef3aa4cdd2039e
+    clientSecret: 5b51ba217cc932074b2985063f4e1db2004e95f7
 # https://utteranc.es/
 #utterances:
 #    repo: mzlogin/blog-comments
