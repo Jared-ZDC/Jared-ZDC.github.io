@@ -1,8 +1,8 @@
 # ---------------- #
 #   Main Configs   #
 # ---------------- #
-baseurl:
-url: https://Jared-ZDC.github.io/SpaceForJared
+baseurl: /SpaceForJared
+url: https://Jared-ZDC.github.io
 date_format: "ordinal"
 title: Space for Jared Zhu
 subtitle: "公众号：闷骚的程序员"
