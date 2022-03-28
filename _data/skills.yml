@@ -1,19 +1,15 @@
-- name: Software Engineer Keywords
+- name: Engineer Keywords
   keywords:
-      - Java
-      - C++
-      - Python
-      - Design Patterns
+      - Java/C/GO/Python
+      - Intel/ArmV8/PCIe/性能
+      - Performance Spec
 
-- name: Mobile Developer Keywords
+- name: 理财
   keywords:
-      - Android
-      - Reverse Engineering
+      - 价值投资/股票/期权
+      - 数字货币
 
-- name: Windows Developer Keywords
+- name: 手工
   keywords:
-      - Win32 SDK
-      - DuiLib
-      - WTL
-      - COM
-      - WinDbg
+      - 雕刻
+      - 机关
