@@ -1,6 +1,6 @@
-- name: Engineer Keywords
+- name: 攻城狮必备
   keywords:
-      - Java/C/GO/Python
+      - Java/C/GO/Python/Bash
       - Intel/ArmV8/PCIe/性能
       - Performance Spec
 
