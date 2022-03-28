@@ -8,22 +8,14 @@ menu: 关于
 permalink: /about/
 ---
 
-TODO
+误打误撞走进了处理器行业，一路上磕磕绊绊，总归算是走过了十年...
+经历过高光，经历过低谷，33岁的年纪，又将重新启航，继续征途在处理器的领域...
+
+专注于**性能**，**理财**，以及分享一些**读书笔记**，**生活感悟**，欢迎大家一起探讨
 
 
 ## 联系
-
-<ul>
-{% for website in site.data.social %}
-<li>{{website.sitename }}：<a href="{{ website.url }}" target="_blank">@{{ website.name }}</a></li>
-{% endfor %}
-{% if site.url contains 'mazhuang.org' %}
-<li>
-微信公众号：<br />
-<img style="height:192px;width:192px;border:1px solid lightgrey;" src="{{ assets_base_url }}/assets/images/qrcode.jpg" alt="闷骚的程序员" />
-</li>
-{% endif %}
-</ul>
+**邮箱：** freejared@163.com
 
 
 ## Skill Keywords
