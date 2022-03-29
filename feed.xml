@@ -1,5 +1,5 @@
 <?xml version='1.0' encoding='UTF-8'?>
-<feed xmlns="http://www.w3.org/2005/Atom"><id>https://github.com/Jared-ZDC/Jared-ZDC.github.io</id><title>RSS feed of Jared-ZDC's Jared-ZDC.github.io</title><updated>2022-03-29T07:07:13.864606+00:00</updated><author><name>Jared-ZDC</name><email>freejared@163.com</email></author><link href="https://github.com/Jared-ZDC/Jared-ZDC.github.io"/><link href="https://raw.githubusercontent.com/Jared-ZDC/Jared-ZDC.github.io/master/feed.xml" rel="self"/><generator uri="https://lkiesow.github.io/python-feedgen" version="0.9.0">python-feedgen</generator><entry><id>https://github.com/Jared-ZDC/Jared-ZDC.github.io/issues/1</id><title>gradle https代理访问</title><updated>2022-03-29T07:07:14.099813+00:00</updated><content type="html"><![CDATA[<h2>背景</h2>
+<feed xmlns="http://www.w3.org/2005/Atom"><id>https://github.com/Jared-ZDC/Jared-ZDC.github.io</id><title>RSS feed of Jared-ZDC's Jared-ZDC.github.io</title><updated>2022-03-29T07:21:38.642814+00:00</updated><author><name>Jared-ZDC</name><email>freejared@163.com</email></author><link href="https://github.com/Jared-ZDC/Jared-ZDC.github.io"/><link href="https://raw.githubusercontent.com/Jared-ZDC/Jared-ZDC.github.io/master/feed.xml" rel="self"/><generator uri="https://lkiesow.github.io/python-feedgen" version="0.9.0">python-feedgen</generator><entry><id>https://github.com/Jared-ZDC/Jared-ZDC.github.io/issues/1</id><title>gradle https代理访问</title><updated>2022-03-29T07:21:38.871837+00:00</updated><content type="html"><![CDATA[<h2>背景</h2>
 <p>由于公司的网络无法直接访问外网，在用gradle的时候，必须配置代理</p>
 <h2>代理配置</h2>
 <p>gradle的代理配置网上教程较多，这里基本上也是复制网上的基础配置，谨以此作为备案，以便后续查看</p>
@@ -31,4 +31,8 @@ javax.net.ssl.SSLHandshakeException: sun.security.validator.ValidatorException: 
 </code></pre>
 <p>证书可以通过使用浏览器访问该网站，然后导出到文件中，编码选择base64编码即可</p>
 <p><strong>这里需要注意，证书有时候是多级认证的，因此需要逐个导出，此外，根据工程访问的repo源不同，需要的证书有可能不一样，因此都需要逐个导出，并导入到编译环境中，否则无法访问相关文件</strong></p>
+<p>最后在gradle.properties（gradle-wrapper.properties）文件中指明cacerts路径：</p>
+<pre><code class="language-properties">systemProp.javax.net.ssl.trustStore=/home/paas/jdk-11.0.2/lib/security/cacerts
+systemProp.javax.net.ssl.trustStorePassword=changeit
+</code></pre>
 ]]></content><link href="https://github.com/Jared-ZDC/Jared-ZDC.github.io/issues/1" rel="alternate"/><category term="wiki"/><published>2022-03-29T07:04:35+00:00</published></entry></feed>
