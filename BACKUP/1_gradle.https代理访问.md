@@ -36,3 +36,9 @@ keytool -import -alias your_alias_name -keystore $JAVA_HOME/lib/security/cacerts
 证书可以通过使用浏览器访问该网站，然后导出到文件中，编码选择base64编码即可
 
 **这里需要注意，证书有时候是多级认证的，因此需要逐个导出，此外，根据工程访问的repo源不同，需要的证书有可能不一样，因此都需要逐个导出，并导入到编译环境中，否则无法访问相关文件**
+
+最后在gradle.properties（gradle-wrapper.properties）文件中指明cacerts路径：
+```properties
+systemProp.javax.net.ssl.trustStore=/home/paas/jdk-11.0.2/lib/security/cacerts
+systemProp.javax.net.ssl.trustStorePassword=changeit
+```
