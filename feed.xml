@@ -1,2 +1,34 @@
 <?xml version='1.0' encoding='UTF-8'?>
-<feed xmlns="http://www.w3.org/2005/Atom"><id>https://github.com/Jared-ZDC/SpaceForJared</id><title>RSS feed of Jared-ZDC's SpaceForJared</title><updated>2022-03-03T06:19:51.199190+00:00</updated><author><name>Jared-ZDC</name><email>freejared@163.com</email></author><link href="https://github.com/Jared-ZDC/SpaceForJared"/><link href="https://raw.githubusercontent.com/Jared-ZDC/SpaceForJared/master/feed.xml" rel="self"/><generator uri="https://lkiesow.github.io/python-feedgen" version="0.9.0">python-feedgen</generator></feed>
+<feed xmlns="http://www.w3.org/2005/Atom"><id>https://github.com/Jared-ZDC/Jared-ZDC.github.io</id><title>RSS feed of Jared-ZDC's Jared-ZDC.github.io</title><updated>2022-03-29T07:07:13.864606+00:00</updated><author><name>Jared-ZDC</name><email>freejared@163.com</email></author><link href="https://github.com/Jared-ZDC/Jared-ZDC.github.io"/><link href="https://raw.githubusercontent.com/Jared-ZDC/Jared-ZDC.github.io/master/feed.xml" rel="self"/><generator uri="https://lkiesow.github.io/python-feedgen" version="0.9.0">python-feedgen</generator><entry><id>https://github.com/Jared-ZDC/Jared-ZDC.github.io/issues/1</id><title>gradle https代理访问</title><updated>2022-03-29T07:07:14.099813+00:00</updated><content type="html"><![CDATA[<h2>背景</h2>
+<p>由于公司的网络无法直接访问外网，在用gradle的时候，必须配置代理</p>
+<h2>代理配置</h2>
+<p>gradle的代理配置网上教程较多，这里基本上也是复制网上的基础配置，谨以此作为备案，以便后续查看</p>
+<pre><code class="language-properties">systemProp.http.auth.ntlm.domain=CHINA
+systemProp.http.keepAlive=true
+systemProp.http.proxyHost=your proxy host
+systemProp.http.proxyPort=8080
+systemProp.http.proxyUser=your acount if needed
+systemProp.http.proxyPassword=your password if needed
+systemProp.http.nonProxyHosts=*.xxxx.com|localhost|127.0.0.1
+systemProp.https.proxyHost=your proxy host
+systemProp.https.proxyPort=8080
+systemProp.https.proxyUser=your acount if needed
+systemProp.https.proxyPassword=your password if needed
+systemProp.https.nonProxyHosts=*.xxxx.com|localhost|127.0.0.1
+</code></pre>
+<p>在gradle工程中，最好在以下两个文件中，均添加以上配置：</p>
+<ul>
+<li>./gradle.properties</li>
+<li>./gradle/wrapper/gradle-wrapper.properties</li>
+</ul>
+<h2>证书导入</h2>
+<p>由于gradle的maven源经常是https协议的，这样会导致https的证书错误：</p>
+<pre><code class="language-bash">sun.security.validator.ValidatorException: PKIX path validation failed: java.security.cert.CertPathValidatorException: signature check failed
+javax.net.ssl.SSLHandshakeException: sun.security.validator.ValidatorException: PKIX path validation failed: java.security.cert.CertPathValidatorException: signature check failed
+</code></pre>
+<p>因此需要根据build.gradle中访问的网址将需要的证书逐个导入到jdk中：</p>
+<pre><code class="language-bash">keytool -import -alias your_alias_name -keystore $JAVA_HOME/lib/security/cacerts  -file  your_cer_file
+</code></pre>
+<p>证书可以通过使用浏览器访问该网站，然后导出到文件中，编码选择base64编码即可</p>
+<p><strong>这里需要注意，证书有时候是多级认证的，因此需要逐个导出，此外，根据工程访问的repo源不同，需要的证书有可能不一样，因此都需要逐个导出，并导入到编译环境中，否则无法访问相关文件</strong></p>
+]]></content><link href="https://github.com/Jared-ZDC/Jared-ZDC.github.io/issues/1" rel="alternate"/><category term="wiki"/><published>2022-03-29T07:04:35+00:00</published></entry></feed>
