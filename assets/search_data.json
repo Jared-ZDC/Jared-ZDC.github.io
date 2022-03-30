@@ -89,6 +89,14 @@
   
   
   
+    {
+      "title"    : "现代处理器性能分析及优化—前言",
+      "url"      : "https://Jared-ZDC.github.io/BACKUP/2_%E7%8E%B0%E4%BB%A3%E5%A4%84%E7%90%86%E5%99%A8%E6%80%A7%E8%83%BD%E5%88%86%E6%9E%90%E5%8F%8A%E4%BC%98%E5%8C%96---%E5%89%8D%E8%A8%80/",
+      "keywords" : ""
+    } ,
+  
+  
+  
   
   
   
@@ -100,6 +108,14 @@
       "content": "背景 由于公司的网络无法直接访问外网，在用gradle的时候，必须配置代理 代理配置 gradle的代理配置网上教程较多，这里基本上也是复制网上的基础配置，谨以此作为备案，以便后续查看 systemProp.http.auth.ntlm.domain=CHINA systemProp.http.keepAlive=true systemProp.http.proxyHost=your proxy host systemProp.http.proxyPort=8080 systemProp.http.proxyUser=your acount if needed systemProp.http.proxyPassword=your password if needed systemProp.http.nonProxyHosts=*.xxxx.com|localhost|127.0.0.1 systemProp.https.proxyHost=your proxy host systemProp.https.proxyPort=8080 systemProp.https.proxyUser=your acount if needed systemProp.https.proxyPassword=your password if needed systemProp.https.nonProxyHosts=*.xxxx.com|localhost|127.0.0.1 在gradle工程中，最好在以下两个文件中，均添加以上配置： ./gradle.properties ./gradle/wrapper/gradle-wrapper.properties 证书导入 由于gradle的maven源经常是https协议的，这样会导致https的证书错误： sun.security.validator.ValidatorException: PKIX path validation failed: java.security.cert.CertPathValidatorException: signature check failed javax.net.ssl.SSLHandshakeException: sun.security.validator.ValidatorException: PKIX path validation failed: java.security.cert.CertPathValidatorException: signature check failed 因此需要根据build.gradle中访问的网址将需要的证书逐个导入到jdk中： keytool -import -alias your_alias_name -keystore $JAVA_HOME/lib/security/cacerts -file your_cer_file 证书可以通过使用浏览器访问该网站，然后导出到文件中，编码选择base64编码即可 这里需要注意，证书有时候是多级认证的，因此需要逐个导出，此外，根据工程访问的repo源不同，需要的证书有可能不一样，因此都需要逐个导出，并导入到编译环境中，否则无法访问相关文件 最后在gradle.properties（gradle-wrapper.properties）文件中指明cacerts路径： systemProp.javax.net.ssl.trustStore=/home/paas/jdk-11.0.2/lib/security/cacerts systemProp.javax.net.ssl.trustStorePassword=changeit ",
       "url"      : "https://Jared-ZDC.github.io/2022/03/29/gradle-https-proxy/",
       "keywords" : "proxy gradle"
+    } ,
+  
+    {
+      "title"    : "现在处理器性能分析及优化(前言)",
+      "category" : "Performance",
+      "content": "最近在youtube上无意中看到Denis Bakhvalov的有关处理器性能分析优化的课程以及书籍，个人觉得这本书对于想入或者初入这个领域的技术人员有比较大的启发作用，因此萌生了想要翻译Denis 教材《Performance analysis and tuning on modern CPU》的想法，并通过翻译这本书，梳理这些年在通用CPU性能分析优化的一些经验、总结以及教训，希望能够对想要了解这个领域的同学们起到一定的作用。 Denis简介 Denis是英特尔的高级开发人员，主要负责通过C++编译器为各种不同的体系结构程序进行编译优化。其工作及兴趣方向主要是编译器、性能优化相关的工程。从2008年开始，作为软件工程师，主要从事于开发桌面应用程序、嵌入式开发、性能分析和编译器开发。2016年开始撰写个人博客，分享关于性能分析、C/C++编译器以及CPU微架构相关的经验总结（笔者建议同学们有空可以浏览一下他的博客，里面提供了比较多的学习视频以及相关案例的讨论） 此外，Denis也是一个积极生活倡导者，在工作之余，他经常会跟朋友踢足球，网球，跑步，还有下棋。除此之外，Denis是两个漂亮女儿的父亲(此处，笔者推荐一本书《软技能 代码之外的生存指南》，献给IT界的朋友们，希望各位在工作之余的生活足够多姿多彩)。 笔者简介 笔者在华为从事相关处理器性能分析优化工作9年左右，主要参与了鲲鹏处理器的研发，包括性能分析、性能优化、benchmark验证分析以及BringUp相关的工作，因此在该领域有一定的经验以及心得，但仍然在这个领域内还是一个小学生，希望能够跟这个领域内的大牛们一起探讨学习 ",
+      "url"      : "https://Jared-ZDC.github.io/2022/03/30/performance-analysis-tuning/",
+      "keywords" : "Performance analysis tuning CPU"
     } 
   
 ]
