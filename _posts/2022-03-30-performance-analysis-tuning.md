@@ -1,8 +1,8 @@
 ---
 layout: post
-title: 现在处理器性能分析及优化(前言)
+title: 现代处理器性能分析及优化(前言)
 categories: PAATOMC
-description: 现在处理器性能分析及优化(前言)。
+description: 现代处理器性能分析及优化(前言)。
 keywords: Performance analysis tuning CPU
 ---
 
