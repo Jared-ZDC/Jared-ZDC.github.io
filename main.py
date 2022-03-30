@@ -8,8 +8,8 @@ from github import Github
 from feedgen.feed import FeedGenerator
 from lxml.etree import CDATA
 
-MD_HEAD = """## Space For Jared
-闲看庭前花开花落，漫随天际云卷云舒 
+MD_HEAD = """## 叩诚
+行叩诚而不阿兮，遂见迎而逢举 
  
 [RSS Feed](https://raw.githubusercontent.com/{repo_name}/master/feed.xml)
 """
