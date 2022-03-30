@@ -1,5 +1,5 @@
-## Space For Jared
-闲看庭前花开花落，漫随天际云卷云舒 
+## 叩诚
+行叩诚而不阿兮，遂见迎而逢举 
  
 [RSS Feed](https://raw.githubusercontent.com/Jared-ZDC/Jared-ZDC.github.io/master/feed.xml)
 ## 友情链接
