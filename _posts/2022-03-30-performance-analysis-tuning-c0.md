@@ -1,6 +1,6 @@
 ---
 layout: post
-title: 现代处理器性能分析及优化-C00
+title: 现代处理器性能分析及优化-C01
 categories: PAATOMC
 description: 现代处理器性能分析及优化  简述。
 keywords: performance tuning  analysis  
