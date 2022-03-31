@@ -1,5 +1,5 @@
 <?xml version='1.0' encoding='UTF-8'?>
-<feed xmlns="http://www.w3.org/2005/Atom"><id>https://github.com/Jared-ZDC/Jared-ZDC.github.io</id><title>RSS feed of Jared-ZDC's Jared-ZDC.github.io</title><updated>2022-03-30T15:11:13.775565+00:00</updated><author><name>Jared-ZDC</name><email>freejared@163.com</email></author><link href="https://github.com/Jared-ZDC/Jared-ZDC.github.io"/><link href="https://raw.githubusercontent.com/Jared-ZDC/Jared-ZDC.github.io/master/feed.xml" rel="self"/><generator uri="https://lkiesow.github.io/python-feedgen" version="0.9.0">python-feedgen</generator><entry><id>https://github.com/Jared-ZDC/Jared-ZDC.github.io/issues/3</id><title>现代处理器性能分析及优化(简述)</title><updated>2022-03-30T15:11:13.939106+00:00</updated><content type="html"><![CDATA[<p>一直以来，工程师都有一个观念：“性能为王”，以前是，现在是，以后更是。</p>
+<feed xmlns="http://www.w3.org/2005/Atom"><id>https://github.com/Jared-ZDC/Jared-ZDC.github.io</id><title>RSS feed of Jared-ZDC's Jared-ZDC.github.io</title><updated>2022-03-31T03:29:39.546098+00:00</updated><author><name>Jared-ZDC</name><email>freejared@163.com</email></author><link href="https://github.com/Jared-ZDC/Jared-ZDC.github.io"/><link href="https://raw.githubusercontent.com/Jared-ZDC/Jared-ZDC.github.io/master/feed.xml" rel="self"/><generator uri="https://lkiesow.github.io/python-feedgen" version="0.9.0">python-feedgen</generator><entry><id>https://github.com/Jared-ZDC/Jared-ZDC.github.io/issues/3</id><title>现代处理器性能分析及优化(简述)</title><updated>2022-03-31T03:29:39.782922+00:00</updated><content type="html"><![CDATA[<p>一直以来，工程师都有一个观念：“性能为王”，以前是，现在是，以后更是。</p>
 <p>根据<a href="https://www.domo.com/learn/data-neversleeps-5?aid=ogsm072517_1&amp;sf100871281=1">《Data Never Sleeps 5.0》</a>调查研究，世界上每天产生2.5万亿字节的数据，并且保持着每年25%的速度递增。在我们如今的社会生活中，信息产生的来源越来越多，信息交换的速度越来越快，推动了对更快软件（SW）和更快硬件（HW）的需求。简而言之，数据增长不仅对计算能力提出了更高的需求，而且对存储和网络系统也提出了更高需求。</p>
 <p>在PC时代，开发人员通常直接在操作系统之上编程，有时候还不可避免的需要控制软件跟硬件的协调情况。随着世界进入云时代，软件堆栈变得更深更复杂。通过对底层硬件的高度抽象，大多数开发人员往往无需对于实际硬件的把控，直接基于分布式、虚拟化、微服务以及更高层次的开发环境进行开发，效率极大提高的同时，却也带来了消极的一面，现代应用程序对于硬件的亲和性逐渐降低。</p>
 <p>当然这也幸亏于摩尔定律的有效性，软件程序员几十年来一直“轻松愉快”。过去，一些软件供应商更愿意等待新一代硬件来加快应用程序的速度，而不花费人力资源来改进代码。但是，花无百日红，在如今摩尔定律正在逐渐失效，通过查看图1，我们可以看到单线程性能增长正在放缓，想要再通过简单的ScalUp的方式提高性能，收益越来越小。</p>
@@ -68,14 +68,36 @@
 <p>“At such scale, understanding performance characteristics becomes critical – even small improvements in performance or utilization can translate into immense cost savings.” <a href="https://doi.org/10.1145/2872887.2750392">Kanev et al., 2015</a></p>
 </blockquote>
 <h2>谁需要性能优化</h2>
-]]></content><link href="https://github.com/Jared-ZDC/Jared-ZDC.github.io/issues/3" rel="alternate"/><category term="现代处理器性能分析及优化"/><published>2022-03-30T08:15:02+00:00</published></entry><entry><id>https://github.com/Jared-ZDC/Jared-ZDC.github.io/issues/2</id><title>现代处理器性能分析及优化(前言)</title><updated>2022-03-30T15:11:14.047940+00:00</updated><content type="html"><![CDATA[<p>最近在youtube上无意中看到Denis Bakhvalov的有关处理器性能分析优化的课程以及书籍，个人觉得这本书对于想入或者初入这个领域的技术人员有比较大的启发作用，因此萌生了想要翻译Denis 教材《Performance analysis and tuning on modern CPU》的想法，并通过翻译这本书，梳理这些年在通用CPU性能分析优化的一些经验、总结以及教训，希望能够对想要了解这个领域的同学们起到一定的作用。</p>
+<p>在高性能计算（HPC）、云服务、高频交易（HFT）、游戏开发和其它高速领域，性能至关重要，例如，谷歌报告说，搜索速度每慢2%，每个用户的搜索量就减少2%。又比如雅虎，页面加载速度每加快400毫秒，流量就增加了5-9%。在大部分游戏中，小的改进就可以产生重大的影响。这些例子证明，服务性能得越差，使用它的人就越少。</p>
+<p>除了上述领域之外，如今的通用服务应用也需要它。例如，集成到Microsoft Visual Studio IDE中的Visual C++ IntelliSense11功能就有非常苛刻的性能要求。要使IntelliSense自动完成工作，他们必须在以毫秒为单位的时间内完成对整个源代码解析。如果需要几秒钟的时间来构建，估计没有人会使用这个功能。这样的功能必须及时响应用户的请求，并在用户键入新代码时提供有效的反应。只有在设计软件时就考虑了完整的性能需求，并贯彻到架构中，才能实现类似的功能。</p>
+<blockquote>
+<ul>
+<li><strong>笔者经验：</strong> 没有性能的架构连玩具都不如  （某大型IC设计公司军规）*</li>
+</ul>
+</blockquote>
+<p>相反的是，如果一个工具具有优良的性能，那么就会在非常多的领域或项目里面用到，比如像Unreal13和Unity14这样的游戏引擎被广泛用于建筑、3d可视化、电影制作和其他领域。它们的性能非常好，所以它们是需要2d和3d渲染、物理引擎、碰撞检测、声音、动画等的应用程序的不二选择。</p>
+<blockquote>
+<p>“Fast tools don’t just allow users to accomplish tasks faster; they allow users to accomplish entirely new types of tasks, in entirely new ways.” - Nelson Elhage wrote in article15on his blog (2020).</p>
+</blockquote>
+<p>不言而喻，人们本能的讨厌性能缓慢的软件。性能优良的特性可能成为产品的绝佳竞争优势，甚至是唯一因素！</p>
+<p>性能优化是非常重要的和有价值的工作，但它可能非常耗时耗力。事实上，性能优化也是一个永无止境的游戏，总会发现有一些东西需要优化。但是不可避免的是，这也是一个边际效益递减的事情，项目或应用获得的收益在一定程度上也会逐渐降低。在这种情况下，进一步的优化将以非常高的工程成本来进行，这也是性能优化工作需要tradeoff的地方，需要在成本与优化收益之间取得一定的平衡。</p>
+<p>在开始性能优化工作之前，我们需要明确这样做的必要性以及目标，避免盲目的进行性能优化，如果仅仅为了优化而进行的优化并不能为您的产品增加价值。正确的开始性能优化工作是需要树立一个明确的性能目标，并且说明为什么要这样做，这样做的收益是什么，明确衡量性能目标的指标数据，同学们可以在这两个paper <a href="https://ptgmedia.pearsoncmg.com/images/9780133390094/samplepages/0133390098.pdf">《Systems Performance: Enterprise and the Cloud》</a>， <a href="https://777russia.ru/book/uploads/%D0%9F%D0%A0%D0%9E%D0%93%D0%A0%D0%90%D0%9C%D0%9C%D0%98%D0%A0%D0%9E%D0%92%D0%90%D0%9D%D0%98%D0%95/C%23/Pro%20.NET%204.5%20Performance%2C%202012.pdf">《Pro .NET Benchmarking. Apress》</a>中阅读关于更多关于设定性能目标相关的知识。</p>
+<p>此外，为了练习和掌握性能分析和优化的技能而拿起这本书的，欢迎你继续阅读。</p>
+<h2>什么是性能分析</h2>
+<p>是否有过这样的场景，你跟同事在争论某段代码的性能高低？ 但是却缺乏非常有利的手段或者证据证明哪段代码确实性能更优。由于现在处理器的相关特性组件非常多，即使对代码小的调整也会引发显著的性能变化。这也是为什么本书中的第一个建议是： 测试为王 。 <strong>talk is cheap , show me the measure result.</strong></p>
+<blockquote>
+<ul>
+<li><strong>作者经验：</strong>  我看到很多人在尝试优化应用程序时都依赖直觉。但是通常，这样的优化对于应用很难起到正向的作用</li>
+</ul>
+</blockquote>
+]]></content><link href="https://github.com/Jared-ZDC/Jared-ZDC.github.io/issues/3" rel="alternate"/><category term="现代处理器性能分析及优化"/><published>2022-03-30T08:15:02+00:00</published></entry><entry><id>https://github.com/Jared-ZDC/Jared-ZDC.github.io/issues/2</id><title>现代处理器性能分析及优化(前言)</title><updated>2022-03-31T03:29:39.918084+00:00</updated><content type="html"><![CDATA[<p>最近在youtube上无意中看到Denis Bakhvalov的有关处理器性能分析优化的课程以及书籍，个人觉得这本书对于想入或者初入这个领域的技术人员有比较大的启发作用，因此萌生了想要翻译Denis 教材《Performance analysis and tuning on modern CPU》的想法，并通过翻译这本书，梳理这些年在通用CPU性能分析优化的一些经验、总结以及教训，希望能够对想要了解这个领域的同学们起到一定的作用。</p>
 <h1>Denis简介</h1>
 <p><img src="https://easyperf.net/img/dendibakh_2020_250px.jpeg" alt="Denis头像" />
 Denis是英特尔的高级开发人员，主要负责通过C++编译器为各种不同的体系结构程序进行编译优化。其工作及兴趣方向主要是编译器、性能优化相关的工程。从2008年开始，作为软件工程师，主要从事于开发桌面应用程序、嵌入式开发、性能分析和编译器开发。2016年开始撰写<a href="http://easyperf.net">个人博客</a>，分享关于性能分析、C/C++编译器以及CPU微架构相关的经验总结（<em>笔者建议同学们有空可以浏览一下他的博客，里面提供了比较多的学习视频以及相关案例的讨论</em>） </p>
 <p>此外，Denis也是一个积极生活倡导者，在工作之余，他经常会跟朋友踢足球，网球，跑步，还有下棋。除此之外，Denis是两个漂亮女儿的父亲(<em>此处，笔者推荐一本书《软技能 代码之外的生存指南》，献给IT界的朋友们，希望各位在工作之余的生活足够多姿多彩</em>)。</p>
 <h1>笔者简介</h1>
 <p>笔者在华为从事相关处理器性能分析优化工作9年左右，主要参与了鲲鹏处理器的研发，包括性能分析、性能优化、benchmark验证分析以及BringUp相关的工作，因此在该领域有一定的经验以及心得，但仍然在这个领域内还是一个小学生，希望能够跟这个领域内的大牛们一起探讨学习</p>
-]]></content><link href="https://github.com/Jared-ZDC/Jared-ZDC.github.io/issues/2" rel="alternate"/><category term="现代处理器性能分析及优化"/><published>2022-03-30T03:38:59+00:00</published></entry><entry><id>https://github.com/Jared-ZDC/Jared-ZDC.github.io/issues/1</id><title>gradle https代理访问</title><updated>2022-03-30T15:11:14.122188+00:00</updated><content type="html"><![CDATA[<h2>背景</h2>
+]]></content><link href="https://github.com/Jared-ZDC/Jared-ZDC.github.io/issues/2" rel="alternate"/><category term="现代处理器性能分析及优化"/><published>2022-03-30T03:38:59+00:00</published></entry><entry><id>https://github.com/Jared-ZDC/Jared-ZDC.github.io/issues/1</id><title>gradle https代理访问</title><updated>2022-03-31T03:29:40.072724+00:00</updated><content type="html"><![CDATA[<h2>背景</h2>
 <p>由于公司的网络无法直接访问外网，在用gradle的时候，必须配置代理</p>
 <h2>代理配置</h2>
 <p>gradle的代理配置网上教程较多，这里基本上也是复制网上的基础配置，谨以此作为备案，以便后续查看</p>
