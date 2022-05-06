@@ -14,7 +14,7 @@ on:
 
 env:
   GITHUB_NAME: Jared-ZDC
-  GITHUB_EMAIL: freejared@163.com
+  GITHUB_EMAIL: zhu156208@126.com
 
 jobs:
   sync:
