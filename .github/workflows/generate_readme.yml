@@ -27,7 +27,7 @@ jobs:
           git config --global --add safe.directory /github/workspace
     
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v1
       - name: unsafe config
         run: |
           git config --global --add safe.directory /github/workspace
