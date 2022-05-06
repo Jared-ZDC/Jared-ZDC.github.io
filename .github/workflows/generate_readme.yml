@@ -27,7 +27,7 @@ jobs:
           git config --global --add safe.directory /github/workspace
     
       - name: Checkout
-        uses: actions/checkout@v1
+        uses: actions/checkout@v2
       - name: unsafe config
         run: |
           git config --global --add safe.directory /github/workspace
@@ -65,7 +65,7 @@ jobs:
         run: |
           git config --global --add safe.directory /github/workspace
       - name: Push README
-        uses: github-actions-x/commit@v2.6
+        uses: github-actions-x/commit@v2
         with:
           github-token: ${{ secrets.G_T }}
           commit-message: "Refresh README AND BACK UP"
