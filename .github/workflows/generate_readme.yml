@@ -21,6 +21,11 @@ jobs:
     name: Generate README
     runs-on: ubuntu-latest
     steps:
+    
+      - name: unsafe config
+        run: |
+          git config --global --add safe.directory /github/workspace
+    
       - name: Checkout
         uses: actions/checkout@v3
       - name: Set up Python
