@@ -28,6 +28,9 @@ jobs:
     
       - name: Checkout
         uses: actions/checkout@v3
+      - name: unsafe config
+        run: |
+          git config --global --add safe.directory /github/workspace
       - name: Set up Python
         uses: actions/setup-python@v1
         with:
@@ -58,6 +61,9 @@ jobs:
           git config --global --add safe.directory /github/workspace
           curl -H "Content-Type:application/json" -X POST -d '{"inputs": {}, "ref":"main"}' https://api.github.com/repos/yihong0618/2022/actions/workflows/17187634/dispatches -H "Authorization: token ${{ secrets.G_T }}"
 
+      - name: unsafe config
+        run: |
+          git config --global --add safe.directory /github/workspace
       - name: Push README
         uses: github-actions-x/commit@v2.6
         with:
