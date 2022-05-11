@@ -17,7 +17,7 @@ taskset -c 0-7 /usr/local/nginx/sbin/nginx -c /usr/local/nginx/conf/nginx.conf
 ​
 # 客户端测试命令： 使用lo网口
 # 短链接
-taskset -c 8-31 /home/yuzhong.zy/nginx-test/httpress-1.1.0/bin/Release/httpress -n 1000000 -c 200 -t 16  http://127.0.0.1:10000/index.html
+taskset -c 8-31 /home/nginx-test/httpress-1.1.0/bin/Release/httpress -n 1000000 -c 200 -t 16  http://127.0.0.1:10000/index.html
 ​
 ```
 
