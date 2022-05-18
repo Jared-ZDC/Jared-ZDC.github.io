@@ -1,5 +1,68 @@
 <?xml version='1.0' encoding='UTF-8'?>
-<feed xmlns="http://www.w3.org/2005/Atom"><id>https://github.com/Jared-ZDC/Jared-ZDC.github.io</id><title>RSS feed of Jared-ZDC's Jared-ZDC.github.io</title><updated>2022-05-06T10:03:27.242182+00:00</updated><author><name>Jared-ZDC</name><email>zhu156208@126.com</email></author><link href="https://github.com/Jared-ZDC/Jared-ZDC.github.io"/><link href="https://raw.githubusercontent.com/Jared-ZDC/Jared-ZDC.github.io/master/feed.xml" rel="self"/><generator uri="https://lkiesow.github.io/python-feedgen" version="0.9.0">python-feedgen</generator><entry><id>https://github.com/Jared-ZDC/Jared-ZDC.github.io/issues/4</id><title>tmux + vimrc + build.sh备忘</title><updated>2022-05-06T10:03:27.599056+00:00</updated><content type="html"><![CDATA[<h2>tmux.conf</h2>
+<feed xmlns="http://www.w3.org/2005/Atom"><id>https://github.com/Jared-ZDC/Jared-ZDC.github.io</id><title>RSS feed of Jared-ZDC's Jared-ZDC.github.io</title><updated>2022-05-11T07:34:45.937306+00:00</updated><author><name>Jared-ZDC</name><email>zhu156208@126.com</email></author><link href="https://github.com/Jared-ZDC/Jared-ZDC.github.io"/><link href="https://raw.githubusercontent.com/Jared-ZDC/Jared-ZDC.github.io/master/feed.xml" rel="self"/><generator uri="https://lkiesow.github.io/python-feedgen" version="0.9.0">python-feedgen</generator><entry><id>https://github.com/Jared-ZDC/Jared-ZDC.github.io/issues/5</id><title>nginx测试异常分析</title><updated>2022-05-11T07:34:46.127831+00:00</updated><content type="html"><![CDATA[<h1>总结</h1>
+<p>在Intel上测试nginx发现了一个比较奇怪的现象，服务端压测时候，负载总是无法压上去，反而客户端随着核数增加，负载几乎100%，并且主要集中在sys上。</p>
+<pre><code class="language-bash"># 服务端测试命令：
+​
+taskset -c 0-7 /usr/local/nginx/sbin/nginx -c /usr/local/nginx/conf/nginx.conf
+​
+# 客户端测试命令： 使用lo网口
+# 短链接
+taskset -c 8-31 /home/nginx-test/httpress-1.1.0/bin/Release/httpress -n 1000000 -c 200 -t 16  http://127.0.0.1:10000/index.html
+​
+</code></pre>
+<p><img src="https://user-images.githubusercontent.com/17999499/167791253-34096537-1fca-4aa0-84a8-24888eb75c6c.png" alt="image" /></p>
+<h1>分析</h1>
+<p>从当前跟随核数的特征以及top显示的结果上看，问题大概率出现在抢锁的问题上。通过perf采样，可以证实：</p>
+<p><img src="https://user-images.githubusercontent.com/17999499/167791493-36ab3ab2-ac2d-4094-98b8-3d1ca5c57415.png" alt="image" /></p>
+<p>__inet_check_established函数主要实现如下：</p>
+<p><img src="https://user-images.githubusercontent.com/17999499/167791665-4439ffd5-5dd5-4619-9983-9da8fb7431cd.png" alt="image" /></p>
+<p>从这个函数代码大概可以分析出这个函数的主要用途是 判断当前的socket状态是否是TCP_TIME_WAIT的状态，如果是的话，就需要通过twsk_unique获得一个端口：</p>
+<pre><code class="language-c">int tcp_twsk_unique(struct sock *sk, struct sock *sktw, void *twp)
+{
+        const struct inet_timewait_sock *tw = inet_twsk(sktw);
+        const struct tcp_timewait_sock *tcptw = tcp_twsk(sktw);
+        struct tcp_sock *tp = tcp_sk(sk);
+        int reuse = sock_net(sk)-&gt;ipv4.sysctl_tcp_tw_reuse;
+
+        if (reuse == 2) {
+                /* Still does not detect *everything* that goes through
+                 * lo, since we require a loopback src or dst address
+                 * or direct binding to &#x27;lo&#x27; interface.
+                 */
+                bool loopback = false;
+                if (tw-&gt;tw_bound_dev_if == LOOPBACK_IFINDEX)
+                        loopback = true;
+#if IS_ENABLED(CONFIG_IPV6)
+                if (tw-&gt;tw_family == AF_INET6) {
+                        if (ipv6_addr_loopback(&amp;tw-&gt;tw_v6_daddr) ||
+                            ipv6_addr_v4mapped_loopback(&amp;tw-&gt;tw_v6_daddr) ||
+                            ipv6_addr_loopback(&amp;tw-&gt;tw_v6_rcv_saddr) ||
+                            ipv6_addr_v4mapped_loopback(&amp;tw-&gt;tw_v6_rcv_saddr))
+                                loopback = true;
+                } else
+#endif
+</code></pre>
+<p>twsk_unique接口中，会根据tcp_tw_reuse配置来判断如何分配端口。
+﻿
+如果长时间找不到可以复用的端口，那么lock的时间就会变得很长，导致了锁冲突的产生。
+﻿
+但是很神奇的是，查看系统tcp_tw_reuse的配置，已经明确是打开了复用：</p>
+<p><img src="https://user-images.githubusercontent.com/17999499/167792108-ba975aec-06e1-4aff-9c1a-34ddbf2c44b0.png" alt="image" /></p>
+<h1>tcp_tw_reuse分析</h1>
+<p>既然tcp_tw_reuse配置已经打开，那为什么从热点上看，还有大量的连接在做hash_connect呢？
+﻿
+那么是否是有可能在这样大流量下的短链接本来就需要足够的端口来使用，资源已经严重不足了？
+﻿
+查看一下端口的使用情况以及限制：</p>
+<p><img src="https://user-images.githubusercontent.com/17999499/167792261-6fa76d8e-e865-4b10-8148-fe7826509c7b.png" alt="image" /></p>
+<p>不知道什么原因，对于系统对本地端口数量进行了限制，修改这个端口限制从40000-65535 到 0-65535后，性能提升了 100%
+﻿
+但是发现尽管性能提升了，但是客户端还是在大量的hash_connect抢锁， 所以似乎还有其它的问题导致了端口没有完全复用起来。
+﻿
+使用netstat | grep TIME_WAIT确定一下数量： </p>
+<p><img src="https://user-images.githubusercontent.com/17999499/167792381-6435f3e6-ef5c-4603-9619-c93d4ff1bd9f.png" alt="image" /></p>
+<p>发现基本上已经达到极限了， 主要还是由于当前的吞吐量太高 ，已经端口复用已经无法承载了。</p>
+]]></content><link href="https://github.com/Jared-ZDC/Jared-ZDC.github.io/issues/5" rel="alternate"/><category term="问题定位"/><published>2022-05-11T07:24:13+00:00</published></entry><entry><id>https://github.com/Jared-ZDC/Jared-ZDC.github.io/issues/4</id><title>tmux + vimrc + build.sh备忘</title><updated>2022-05-11T07:34:46.215829+00:00</updated><content type="html"><![CDATA[<h2>tmux.conf</h2>
 <pre><code class="language-bash">freejared@B-T2HTMD6R-1928 ~ % cat ~/.tmux.conf 
 # Send prefix
 set-option -g prefix C-a
@@ -55,7 +118,7 @@ cscope -bkq -i cscope.files
 ctags -R .
 freejared@B-T2HTMD6R-1928 Code % 
 </code></pre>
-]]></content><link href="https://github.com/Jared-ZDC/Jared-ZDC.github.io/issues/4" rel="alternate"/><category term="wiki"/><published>2022-05-06T02:29:49+00:00</published></entry><entry><id>https://github.com/Jared-ZDC/Jared-ZDC.github.io/issues/3</id><title>现代处理器性能分析及优化-C01</title><updated>2022-05-06T10:03:27.781787+00:00</updated><content type="html"><![CDATA[<p>一直以来，工程师都有一个观念：“性能为王”，以前是，现在是，以后更是。</p>
+]]></content><link href="https://github.com/Jared-ZDC/Jared-ZDC.github.io/issues/4" rel="alternate"/><category term="wiki"/><published>2022-05-06T02:29:49+00:00</published></entry><entry><id>https://github.com/Jared-ZDC/Jared-ZDC.github.io/issues/3</id><title>现代处理器性能分析及优化-C01</title><updated>2022-05-11T07:34:46.301676+00:00</updated><content type="html"><![CDATA[<p>一直以来，工程师都有一个观念：“性能为王”，以前是，现在是，以后更是。</p>
 <p>根据<a href="https://www.domo.com/learn/data-neversleeps-5?aid=ogsm072517_1&amp;sf100871281=1">《Data Never Sleeps 5.0》</a>调查研究，世界上每天产生2.5万亿字节的数据，并且保持着每年25%的速度递增。在我们如今的社会生活中，信息产生的来源越来越多，信息交换的速度越来越快，推动了对更快软件（SW）和更快硬件（HW）的需求。简而言之，数据增长不仅对计算能力提出了更高的需求，而且对存储和网络系统也提出了更高需求。</p>
 <p>在PC时代，开发人员通常直接在操作系统之上编程，有时候还不可避免的需要直接参与控制硬件。随着世界进入云时代，软件堆栈变得更深更复杂。通过对底层硬件的高度抽象，大多数开发人员往往无需对于实际硬件的把控，直接基于分布式、虚拟化、微服务以及更高层次的开发环境进行开发，效率极大提高的同时，却也带来了消极的一面，导致现代应用程序对于硬件的亲和性逐渐降低。</p>
 <p>还有，幸亏于摩尔定律的有效性，软件程序员这几十年来一直“轻松愉快”。过去，一些软件供应商更愿意等待新一代硬件来加快应用程序的速度，而不花费人力资源来改进代码。但是，花无百日红，如今摩尔定律正在逐渐失效，通过查看图1，我们可以看到单线程性能增长正在放缓，想要再通过简单的ScalUp的方式提高性能，收益越来越小。</p>
@@ -197,14 +260,14 @@ freejared@B-T2HTMD6R-1928 Code %
 <li>软件优化应以强大的业务需求为后盾。开发人员应设定可量化的目标和指标，这些目标和指标必须可以用于衡量优化进展情况。</li>
 <li>预测某段代码的性能几乎是不可能的，因为影响性能的因素太多了。在进行软件优化时，开发人员不应依赖直觉，而应使用仔细的进行性能分析，大胆揣测，小心求证。</li>
 </ul>
-]]></content><link href="https://github.com/Jared-ZDC/Jared-ZDC.github.io/issues/3" rel="alternate"/><category term="现代处理器性能分析及优化"/><published>2022-03-30T08:15:02+00:00</published></entry><entry><id>https://github.com/Jared-ZDC/Jared-ZDC.github.io/issues/2</id><title>现代处理器性能分析及优化-C00</title><updated>2022-05-06T10:03:27.998642+00:00</updated><content type="html"><![CDATA[<p>最近在youtube上无意中看到Denis Bakhvalov的有关处理器性能分析优化的课程以及书籍，个人觉得这本书对于想入或者初入这个领域的技术人员有比较大的启发作用，因此萌生了想要翻译Denis 教材《Performance analysis and tuning on modern CPU》的想法，并通过翻译这本书，梳理这些年在通用CPU性能分析优化的一些经验、总结以及教训，希望能够对想要了解这个领域的同学们起到一定的作用。</p>
+]]></content><link href="https://github.com/Jared-ZDC/Jared-ZDC.github.io/issues/3" rel="alternate"/><category term="现代处理器性能分析及优化"/><published>2022-03-30T08:15:02+00:00</published></entry><entry><id>https://github.com/Jared-ZDC/Jared-ZDC.github.io/issues/2</id><title>现代处理器性能分析及优化-C00</title><updated>2022-05-11T07:34:46.423376+00:00</updated><content type="html"><![CDATA[<p>最近在youtube上无意中看到Denis Bakhvalov的有关处理器性能分析优化的课程以及书籍，个人觉得这本书对于想入或者初入这个领域的技术人员有比较大的启发作用，因此萌生了想要翻译Denis 教材《Performance analysis and tuning on modern CPU》的想法，并通过翻译这本书，梳理这些年在通用CPU性能分析优化的一些经验、总结以及教训，希望能够对想要了解这个领域的同学们起到一定的作用。</p>
 <h1>Denis简介</h1>
 <p><img src="https://easyperf.net/img/dendibakh_2020_250px.jpeg" alt="Denis头像" />
 Denis是英特尔的高级开发人员，主要负责通过C++编译器为各种不同的体系结构程序进行编译优化。其工作及兴趣方向主要是编译器、性能优化相关的工程。从2008年开始，作为软件工程师，主要从事于开发桌面应用程序、嵌入式开发、性能分析和编译器开发。2016年开始撰写<a href="http://easyperf.net">个人博客</a>，分享关于性能分析、C/C++编译器以及CPU微架构相关的经验总结（<em>笔者建议同学们有空可以浏览一下他的博客，里面提供了比较多的学习视频以及相关案例的讨论</em>） </p>
 <p>此外，Denis也是一个积极生活倡导者，在工作之余，他经常会跟朋友踢足球，网球，跑步，还有下棋。除此之外，Denis是两个漂亮女儿的父亲(<em>此处，笔者推荐一本书《软技能 代码之外的生存指南》，献给IT界的朋友们，希望各位在工作之余的生活足够多姿多彩</em>)。</p>
 <h1>笔者简介</h1>
 <p>笔者在华为从事相关处理器性能分析优化工作9年左右，主要参与了鲲鹏处理器的研发，包括性能分析、性能优化、benchmark验证分析以及BringUp相关的工作，因此在该领域有一定的经验以及心得，但仍然在这个领域内还是一个小学生，希望能够跟这个领域内的大牛们一起探讨学习</p>
-]]></content><link href="https://github.com/Jared-ZDC/Jared-ZDC.github.io/issues/2" rel="alternate"/><category term="现代处理器性能分析及优化"/><published>2022-03-30T03:38:59+00:00</published></entry><entry><id>https://github.com/Jared-ZDC/Jared-ZDC.github.io/issues/1</id><title>gradle https代理访问</title><updated>2022-05-06T10:03:28.166776+00:00</updated><content type="html"><![CDATA[<h2>背景</h2>
+]]></content><link href="https://github.com/Jared-ZDC/Jared-ZDC.github.io/issues/2" rel="alternate"/><category term="现代处理器性能分析及优化"/><published>2022-03-30T03:38:59+00:00</published></entry><entry><id>https://github.com/Jared-ZDC/Jared-ZDC.github.io/issues/1</id><title>gradle https代理访问</title><updated>2022-05-11T07:34:46.511963+00:00</updated><content type="html"><![CDATA[<h2>背景</h2>
 <p>由于公司的网络无法直接访问外网，在用gradle的时候，必须配置代理</p>
 <h2>代理配置</h2>
 <p>gradle的代理配置网上教程较多，这里基本上也是复制网上的基础配置，谨以此作为备案，以便后续查看</p>
