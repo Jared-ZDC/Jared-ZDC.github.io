@@ -1,5 +1,69 @@
 <?xml version='1.0' encoding='UTF-8'?>
-<feed xmlns="http://www.w3.org/2005/Atom"><id>https://github.com/Jared-ZDC/Jared-ZDC.github.io</id><title>RSS feed of Jared-ZDC's Jared-ZDC.github.io</title><updated>2022-05-11T07:34:45.937306+00:00</updated><author><name>Jared-ZDC</name><email>zhu156208@126.com</email></author><link href="https://github.com/Jared-ZDC/Jared-ZDC.github.io"/><link href="https://raw.githubusercontent.com/Jared-ZDC/Jared-ZDC.github.io/master/feed.xml" rel="self"/><generator uri="https://lkiesow.github.io/python-feedgen" version="0.9.0">python-feedgen</generator><entry><id>https://github.com/Jared-ZDC/Jared-ZDC.github.io/issues/5</id><title>nginx测试异常分析</title><updated>2022-05-11T07:34:46.127831+00:00</updated><content type="html"><![CDATA[<h1>总结</h1>
+<feed xmlns="http://www.w3.org/2005/Atom"><id>https://github.com/Jared-ZDC/Jared-ZDC.github.io</id><title>RSS feed of Jared-ZDC's Jared-ZDC.github.io</title><updated>2022-05-20T07:04:27.452817+00:00</updated><author><name>Jared-ZDC</name><email>zhu156208@126.com</email></author><link href="https://github.com/Jared-ZDC/Jared-ZDC.github.io"/><link href="https://raw.githubusercontent.com/Jared-ZDC/Jared-ZDC.github.io/master/feed.xml" rel="self"/><generator uri="https://lkiesow.github.io/python-feedgen" version="0.9.0">python-feedgen</generator><entry><id>https://github.com/Jared-ZDC/Jared-ZDC.github.io/issues/6</id><title>Intel PAUSE指令功效分析</title><updated>2022-05-20T07:04:27.731847+00:00</updated><content type="html"><![CDATA[<h1>PAUSE指令</h1>
+<p>Improves the performance of spin-wait loops. When executing a “spin-wait loop,” processors will suffer a severe performance penalty when exiting the loop because it detects a possible memory order violation. The PAUSE instruction provides a hint to the processor that the code sequence is a spin-wait loop. The processor uses this hint to avoid the memory order violation in most situations, which greatly improves processor performance. For this reason, it is recommended that a PAUSE instruction be placed in all spin-wait loops.</p>
+<p>An additional function of the PAUSE instruction is to reduce the power consumed by a processor while executing a spin loop. A processor can execute a spin-wait loop extremely quickly, causing the processor to consume a lot of power while it waits for the resource it is spinning on to become available. Inserting a pause instruction in a spin-wait loop greatly reduces the processor’s power consumption.</p>
+<p>翻译成人话的意思是，其功效主要是两个：</p>
+<ul>
+<li>提升抢锁性能</li>
+<li>节省功耗
+针对这两点，尝试使用一些testcase进行深入的测试分析，看看是否可以发现一些有意思的东西。</li>
+</ul>
+<h1>测试</h1>
+<p>之前在一个问题分析中有提到C库中Intel使用了rep nop（事实上就是PAUSE）来优化他的抢锁的性能，因此这里依然使用pthread_spin_lock的实现进行魔改来测试性能：</p>
+<pre><code class="language-c">//根据参数选择不同的spin_lock
+if(pause_type)
+        mypthread_spin_lock = mypthread_pause_spin_lock;
+    else    
+        mypthread_spin_lock = mypthread_nopause_spin_lock;
+
+
+//测试主体 N个线程
+void *doWork() {
+    uint32_t loop = thread_cnt;
+    uint32_t type = pause_type;
+    uint64_t iloop = idle_loop;
+
+    while(!readyFlag) ;
+
+    while(loop--) {
+
+        mypthread_spin_lock(&amp;lockValue);
+        loop_counter ++;
+        mypthread_spin_unlock(&amp;lockValue);
+        iloop = idle_loop;
+        while(iloop--);
+    }
+}
+</code></pre>
+<p>从实际测试结果上来看，性能似乎并没有太大变化，甚至于nopause的性能还要略优于pause的性能：
+<img src="https://user-images.githubusercontent.com/17999499/169471551-1a6f361f-fcd3-43c2-bfcd-78d6930946f4.png" alt="image" /></p>
+<p>从测试功耗结果的角度看，确实节省了不少功耗，32个线程测试时，pause场景比nopaus场景，整机功耗能够下降将近25W左右，也就是说Intel手册上说明的功耗降低是有意义的，但是性能却没有体现出来。</p>
+<h1>分析</h1>
+<p>由此可以推断，在pthread_spin_lock的场景下，pause实际上是没有起到提升锁性能的作用，仅仅是起到了降低功耗的作用，那么pause在什么样的场景下 可以提升抢锁的性能？</p>
+<p>在不同的架构下，pause 指令的延时其实是不同的，甚至于在icelake阶段，pause的延时已经达到了140个cycle了。至于为什么对抢锁性能没有较大的提升，这里可能有两个推论：</p>
+<ul>
+<li>是否pause对原子的性能提升在实现上，更关注了CAS的性能，而忽略了FAA/SWAP的操作</li>
+<li>是否pause的作用仅仅是提供了一个idle loop的作用，减少了冲突导致的性能提升？</li>
+</ul>
+<p>修改pthread_spin_lock为cas实现方式，测试结果如下：
+<img src="https://user-images.githubusercontent.com/17999499/169471653-0d5b8664-9447-443d-b8e4-a436d4b8620a.png" alt="image" /></p>
+<p>很有意思的是，发现性能也没有明显的变化，查看intel trm的文档，其中有一句话描述：
+<img src="https://user-images.githubusercontent.com/17999499/169471695-d52cea6b-bfd9-4ba6-a6a6-6a69cffd1ac4.png" alt="image" /></p>
+<p>也就是说，这个并不是直接提升了原子指令的性能，而是一个hint给到处理器，告诉处理器当前处于spin_loop阶段，处理器的能力可以让度出去，避免了大多数场景里面了一些内存序冲突的问题，这里我的理解是减少了对其它共享内存操作的可能性，减少了核间竞争的的开销，提升了整体cache的有效性，从而业务性能有比较大的提升。</p>
+<p>此外，在测试过程中，发现pause指令并不是单纯的执行nop指令，更多的像整个流水线都让渡出去了，从perf的执行统计上看，IPC非常低：
+<img src="https://user-images.githubusercontent.com/17999499/169471743-c609f809-fe5b-4a86-8460-1fb463bf9455.png" alt="image" /></p>
+<p>也就是说 这个时候，基本另外的线程可以独占整个处理器，在性能上又有很大的提升。</p>
+<h2>进一步测试</h2>
+<p>在同一个物理核的超线程上面做redis的测试，确认IPC，在同物理核的另外一个线程上，运行测试程序，确认不同情况下，对redis的线程的影响：
+nopause时， redis rps只能达到15万左右， 带了pause指令后， redis的性能可以达到16万吞吐量，这个还是计算并不密集的情况，比如在计算圆周率的场景下，pause指令对另外一个线程的吞吐量影响更大(IPC : 0.8-&gt;1.8)：
+<img src="https://user-images.githubusercontent.com/17999499/169471809-5b41ae67-99f4-442e-a2e6-b0848def60c8.png" alt="image" /></p>
+<h1>总结</h1>
+<ul>
+<li>PAUSE指令并不是直接提升抢锁指令的性能，而是通过让渡CPU资源给同核心的另一个线程，提升整体运算利用率</li>
+<li>PAUSE指令在多线程的时候，还能减少对共享内存的访问，减少同cache的竞争，从而提升其它业务核的性能</li>
+<li>PAUSE指令能够极大的降低功耗</li>
+</ul>
+]]></content><link href="https://github.com/Jared-ZDC/Jared-ZDC.github.io/issues/6" rel="alternate"/><category term="技术分析"/><published>2022-05-20T07:02:17+00:00</published></entry><entry><id>https://github.com/Jared-ZDC/Jared-ZDC.github.io/issues/5</id><title>nginx测试异常分析</title><updated>2022-05-20T07:04:27.878147+00:00</updated><content type="html"><![CDATA[<h1>总结</h1>
 <p>在Intel上测试nginx发现了一个比较奇怪的现象，服务端压测时候，负载总是无法压上去，反而客户端随着核数增加，负载几乎100%，并且主要集中在sys上。</p>
 <pre><code class="language-bash"># 服务端测试命令：
 ​
@@ -62,7 +126,7 @@ taskset -c 8-31 /home/nginx-test/httpress-1.1.0/bin/Release/httpress -n 1000000 
 使用netstat | grep TIME_WAIT确定一下数量： </p>
 <p><img src="https://user-images.githubusercontent.com/17999499/167792381-6435f3e6-ef5c-4603-9619-c93d4ff1bd9f.png" alt="image" /></p>
 <p>发现基本上已经达到极限了， 主要还是由于当前的吞吐量太高 ，已经端口复用已经无法承载了。</p>
-]]></content><link href="https://github.com/Jared-ZDC/Jared-ZDC.github.io/issues/5" rel="alternate"/><category term="问题定位"/><published>2022-05-11T07:24:13+00:00</published></entry><entry><id>https://github.com/Jared-ZDC/Jared-ZDC.github.io/issues/4</id><title>tmux + vimrc + build.sh备忘</title><updated>2022-05-11T07:34:46.215829+00:00</updated><content type="html"><![CDATA[<h2>tmux.conf</h2>
+]]></content><link href="https://github.com/Jared-ZDC/Jared-ZDC.github.io/issues/5" rel="alternate"/><category term="问题定位"/><published>2022-05-11T07:24:13+00:00</published></entry><entry><id>https://github.com/Jared-ZDC/Jared-ZDC.github.io/issues/4</id><title>tmux + vimrc + build.sh备忘</title><updated>2022-05-20T07:04:28.021213+00:00</updated><content type="html"><![CDATA[<h2>tmux.conf</h2>
 <pre><code class="language-bash">freejared@B-T2HTMD6R-1928 ~ % cat ~/.tmux.conf 
 # Send prefix
 set-option -g prefix C-a
@@ -118,7 +182,7 @@ cscope -bkq -i cscope.files
 ctags -R .
 freejared@B-T2HTMD6R-1928 Code % 
 </code></pre>
-]]></content><link href="https://github.com/Jared-ZDC/Jared-ZDC.github.io/issues/4" rel="alternate"/><category term="wiki"/><published>2022-05-06T02:29:49+00:00</published></entry><entry><id>https://github.com/Jared-ZDC/Jared-ZDC.github.io/issues/3</id><title>现代处理器性能分析及优化-C01</title><updated>2022-05-11T07:34:46.301676+00:00</updated><content type="html"><![CDATA[<p>一直以来，工程师都有一个观念：“性能为王”，以前是，现在是，以后更是。</p>
+]]></content><link href="https://github.com/Jared-ZDC/Jared-ZDC.github.io/issues/4" rel="alternate"/><category term="wiki"/><published>2022-05-06T02:29:49+00:00</published></entry><entry><id>https://github.com/Jared-ZDC/Jared-ZDC.github.io/issues/3</id><title>现代处理器性能分析及优化-C01</title><updated>2022-05-20T07:04:28.157485+00:00</updated><content type="html"><![CDATA[<p>一直以来，工程师都有一个观念：“性能为王”，以前是，现在是，以后更是。</p>
 <p>根据<a href="https://www.domo.com/learn/data-neversleeps-5?aid=ogsm072517_1&amp;sf100871281=1">《Data Never Sleeps 5.0》</a>调查研究，世界上每天产生2.5万亿字节的数据，并且保持着每年25%的速度递增。在我们如今的社会生活中，信息产生的来源越来越多，信息交换的速度越来越快，推动了对更快软件（SW）和更快硬件（HW）的需求。简而言之，数据增长不仅对计算能力提出了更高的需求，而且对存储和网络系统也提出了更高需求。</p>
 <p>在PC时代，开发人员通常直接在操作系统之上编程，有时候还不可避免的需要直接参与控制硬件。随着世界进入云时代，软件堆栈变得更深更复杂。通过对底层硬件的高度抽象，大多数开发人员往往无需对于实际硬件的把控，直接基于分布式、虚拟化、微服务以及更高层次的开发环境进行开发，效率极大提高的同时，却也带来了消极的一面，导致现代应用程序对于硬件的亲和性逐渐降低。</p>
 <p>还有，幸亏于摩尔定律的有效性，软件程序员这几十年来一直“轻松愉快”。过去，一些软件供应商更愿意等待新一代硬件来加快应用程序的速度，而不花费人力资源来改进代码。但是，花无百日红，如今摩尔定律正在逐渐失效，通过查看图1，我们可以看到单线程性能增长正在放缓，想要再通过简单的ScalUp的方式提高性能，收益越来越小。</p>
@@ -260,14 +324,14 @@ freejared@B-T2HTMD6R-1928 Code %
 <li>软件优化应以强大的业务需求为后盾。开发人员应设定可量化的目标和指标，这些目标和指标必须可以用于衡量优化进展情况。</li>
 <li>预测某段代码的性能几乎是不可能的，因为影响性能的因素太多了。在进行软件优化时，开发人员不应依赖直觉，而应使用仔细的进行性能分析，大胆揣测，小心求证。</li>
 </ul>
-]]></content><link href="https://github.com/Jared-ZDC/Jared-ZDC.github.io/issues/3" rel="alternate"/><category term="现代处理器性能分析及优化"/><published>2022-03-30T08:15:02+00:00</published></entry><entry><id>https://github.com/Jared-ZDC/Jared-ZDC.github.io/issues/2</id><title>现代处理器性能分析及优化-C00</title><updated>2022-05-11T07:34:46.423376+00:00</updated><content type="html"><![CDATA[<p>最近在youtube上无意中看到Denis Bakhvalov的有关处理器性能分析优化的课程以及书籍，个人觉得这本书对于想入或者初入这个领域的技术人员有比较大的启发作用，因此萌生了想要翻译Denis 教材《Performance analysis and tuning on modern CPU》的想法，并通过翻译这本书，梳理这些年在通用CPU性能分析优化的一些经验、总结以及教训，希望能够对想要了解这个领域的同学们起到一定的作用。</p>
+]]></content><link href="https://github.com/Jared-ZDC/Jared-ZDC.github.io/issues/3" rel="alternate"/><category term="现代处理器性能分析及优化"/><published>2022-03-30T08:15:02+00:00</published></entry><entry><id>https://github.com/Jared-ZDC/Jared-ZDC.github.io/issues/2</id><title>现代处理器性能分析及优化-C00</title><updated>2022-05-20T07:04:28.340866+00:00</updated><content type="html"><![CDATA[<p>最近在youtube上无意中看到Denis Bakhvalov的有关处理器性能分析优化的课程以及书籍，个人觉得这本书对于想入或者初入这个领域的技术人员有比较大的启发作用，因此萌生了想要翻译Denis 教材《Performance analysis and tuning on modern CPU》的想法，并通过翻译这本书，梳理这些年在通用CPU性能分析优化的一些经验、总结以及教训，希望能够对想要了解这个领域的同学们起到一定的作用。</p>
 <h1>Denis简介</h1>
 <p><img src="https://easyperf.net/img/dendibakh_2020_250px.jpeg" alt="Denis头像" />
 Denis是英特尔的高级开发人员，主要负责通过C++编译器为各种不同的体系结构程序进行编译优化。其工作及兴趣方向主要是编译器、性能优化相关的工程。从2008年开始，作为软件工程师，主要从事于开发桌面应用程序、嵌入式开发、性能分析和编译器开发。2016年开始撰写<a href="http://easyperf.net">个人博客</a>，分享关于性能分析、C/C++编译器以及CPU微架构相关的经验总结（<em>笔者建议同学们有空可以浏览一下他的博客，里面提供了比较多的学习视频以及相关案例的讨论</em>） </p>
 <p>此外，Denis也是一个积极生活倡导者，在工作之余，他经常会跟朋友踢足球，网球，跑步，还有下棋。除此之外，Denis是两个漂亮女儿的父亲(<em>此处，笔者推荐一本书《软技能 代码之外的生存指南》，献给IT界的朋友们，希望各位在工作之余的生活足够多姿多彩</em>)。</p>
 <h1>笔者简介</h1>
 <p>笔者在华为从事相关处理器性能分析优化工作9年左右，主要参与了鲲鹏处理器的研发，包括性能分析、性能优化、benchmark验证分析以及BringUp相关的工作，因此在该领域有一定的经验以及心得，但仍然在这个领域内还是一个小学生，希望能够跟这个领域内的大牛们一起探讨学习</p>
-]]></content><link href="https://github.com/Jared-ZDC/Jared-ZDC.github.io/issues/2" rel="alternate"/><category term="现代处理器性能分析及优化"/><published>2022-03-30T03:38:59+00:00</published></entry><entry><id>https://github.com/Jared-ZDC/Jared-ZDC.github.io/issues/1</id><title>gradle https代理访问</title><updated>2022-05-11T07:34:46.511963+00:00</updated><content type="html"><![CDATA[<h2>背景</h2>
+]]></content><link href="https://github.com/Jared-ZDC/Jared-ZDC.github.io/issues/2" rel="alternate"/><category term="现代处理器性能分析及优化"/><published>2022-03-30T03:38:59+00:00</published></entry><entry><id>https://github.com/Jared-ZDC/Jared-ZDC.github.io/issues/1</id><title>gradle https代理访问</title><updated>2022-05-20T07:04:28.475295+00:00</updated><content type="html"><![CDATA[<h2>背景</h2>
 <p>由于公司的网络无法直接访问外网，在用gradle的时候，必须配置代理</p>
 <h2>代理配置</h2>
 <p>gradle的代理配置网上教程较多，这里基本上也是复制网上的基础配置，谨以此作为备案，以便后续查看</p>
