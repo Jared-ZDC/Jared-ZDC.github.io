@@ -42,9 +42,9 @@ components:
     wiki:
         view: cate
 # 压缩页面内容
-compress_html:
-  clippings: all
-  comments: ["<!--", "-->"]
+#compress_html:
+#  clippings: all
+#  comments: ["<!--", "-->"]
 # 代码高亮风格，支持的 theme 列表见 https://github.com/mzlogin/rouge-themes
 highlight_theme: github
 
