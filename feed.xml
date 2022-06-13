@@ -1,5 +1,125 @@
 <?xml version='1.0' encoding='UTF-8'?>
-<feed xmlns="http://www.w3.org/2005/Atom"><id>https://github.com/Jared-ZDC/Jared-ZDC.github.io</id><title>RSS feed of Jared-ZDC's Jared-ZDC.github.io</title><updated>2022-05-23T02:48:10.505469+00:00</updated><author><name>Jared-ZDC</name><email>zhu156208@126.com</email></author><link href="https://github.com/Jared-ZDC/Jared-ZDC.github.io"/><link href="https://raw.githubusercontent.com/Jared-ZDC/Jared-ZDC.github.io/master/feed.xml" rel="self"/><generator uri="https://lkiesow.github.io/python-feedgen" version="0.9.0">python-feedgen</generator><entry><id>https://github.com/Jared-ZDC/Jared-ZDC.github.io/issues/7</id><title>内核中 “__context__” 含义浅析备忘</title><updated>2022-05-23T02:48:10.838146+00:00</updated><content type="html"><![CDATA[<h1>背景</h1>
+<feed xmlns="http://www.w3.org/2005/Atom"><id>https://github.com/Jared-ZDC/Jared-ZDC.github.io</id><title>RSS feed of Jared-ZDC's Jared-ZDC.github.io</title><updated>2022-06-13T03:07:34.979087+00:00</updated><author><name>Jared-ZDC</name><email>zhu156208@126.com</email></author><link href="https://github.com/Jared-ZDC/Jared-ZDC.github.io"/><link href="https://raw.githubusercontent.com/Jared-ZDC/Jared-ZDC.github.io/master/feed.xml" rel="self"/><generator uri="https://lkiesow.github.io/python-feedgen" version="0.9.0">python-feedgen</generator><entry><id>https://github.com/Jared-ZDC/Jared-ZDC.github.io/issues/8</id><title>在MacOS上交叉编译aarch64 linux内核源码</title><updated>2022-06-13T03:07:35.201467+00:00</updated><content type="html"><![CDATA[<h1>前言</h1>
+<p>由于笔者的日常工作都是基于MacOs的笔记本，日常的工作总需要切换跳转机到aarch64的机器上编译内核，因此想在本地修改直接本地交叉编译，也踩了不少坑。目前看网上也没有相关的踩坑的资料，这里仅以记录，希望对各位有帮助</p>
+<h1>安装交叉编译工具</h1>
+<p>直接使用github上一个同学做好的工具：</p>
+<pre><code class="language-bash">brew tap messense/macos-cross-toolchains
+# install x86_64-unknown-linux-gnu toolchain
+brew install x86_64-unknown-linux-gnu
+# install aarch64-unknown-linux-gnu toolchain
+brew install aarch64-unknown-linux-gnu
+</code></pre>
+<h1>安装gcc</h1>
+<pre><code class="language-bash">brew install gcc cpp
+#修改默认gcc连接到gcc
+cat ~/.zprofile
+alias gcc=&quot;gcc-11&quot;
+alias g++=&quot;g++-11&quot;
+alias c++=&quot;c++-11&quot;
+</code></pre>
+<h1>编译内核</h1>
+<pre><code class="language-bash">git clone https://github.com/torvalds/linux.git
+
+#生成.config
+make defconfig ARCH=arm64 cross_compile=aarch64-unknown-linux-gnu-
+
+#编译内核
+make Image ARCH=arm64 cross_compile=aarch64-unknown-linux-gnu- -j8
+</code></pre>
+<h1>踩坑实录</h1>
+<hr />
+<p><strong>问题一： ld: unknown option: --version</strong></p>
+<pre><code class="language-patch">diff --git a/init/Kconfig b/init/Kconfig
+index 5a0251b5f..90698ffe6 100644
+--- a/init/Kconfig
++++ b/init/Kconfig
+@@ -35,7 +35,7 @@ config GCC_VERSION
+ 
+ config LD_VERSION
+        int
+-       default $(shell,$(LD) --version | $(srctree)/scripts/ld-version.sh)
++       default 13
+ 
+ config CC_IS_CLANG
+        def_bool $(success,echo &quot;$(CC_VERSION_TEXT)&quot; | grep -q clang)
+diff --git a/scripts/lld-version.sh b/scripts/lld-version.sh
+index d70edb4d8..f8b2954f4 100755
+--- a/scripts/lld-version.sh
++++ b/scripts/lld-version.sh
+@@ -6,7 +6,7 @@
+ # Print the linker version of `ld.lld&#x27; in a 5 or 6-digit form
+ # such as `100001&#x27; for ld.lld 10.0.1 etc.
+ 
+-linker_string=&quot;$($* --version)&quot;
++linker_string=&quot;$($* -v)&quot;
+ 
+ if ! ( echo $linker_string | grep -q LLD ); then
+        echo 0
+
+</code></pre>
+<hr />
+<p><strong>问题二： scripts/sorttable.c:27:10: fatal error: 'elf.h' file not found</strong>
+在内核目录下建立一个目录：macos，将编译器sysroot目录下的相关头文件拷贝到macos目录中，主要拷贝以下文件，并保持目录级数相同：</p>
+<pre><code class="language-c">cp sysroot/usr/include/asm-generic/bitsperlong.h asm-generic 
+cp sysroot/usr/include/asm/bitsperlong.h asm
+cp sysroot/usr/include/asm-generic/int-ll64.h asm-generic 
+cp sysroot/usr/include/asm-generic/types.h asm-generic 
+cp sysroot/usr/include/asm/types.h asm
+cp sysroot/usr/include/asm/posix_types.h ./asm
+cp sysroot/usr/include/asm-generic/posix_types.h ./asm-generic 
+cp sysroot/usr/include/linux/elf-em.h ./linux/elf-em.h
+cp sysroot/usr/include/elf.h .
+cp sysroot/usr/include/features.h . 
+cp sysroot/usr/include/stdc-predef.h .
+cp sysroot/usr/include/gnu/stubs.h gnu/ 
+
+freejared@B-T2HTMD6R-1928 include % ls
+asm             asm-generic     elf.h           features.h      gnu             linux           stdc-predef.h
+
+#编译指定路径 -I/macos
+make Image ARCH=arm64 CROSS_COMPILE=aarch64-unknown-linux-gnu- HOSTCFLAGS=&quot;-I/macos&quot;
+</code></pre>
+<p><strong>问题三： scripts/extract-cert.c:21:10: fatal error: 'openssl/bio.h' file not found</strong></p>
+<pre><code class="language-bash">#安装openssl
+brew install openssl
+
+#指定头文件路径 -I/usr/local/Cellar/openssl@3/3.0.3/include
+make Image ARCH=arm64 CROSS_COMPILE=aarch64-unknown-linux-gnu- HOSTCFLAGS=&quot;-I/macos -I/usr/local/Cellar/openssl@3/3.0.3/include&quot;
+</code></pre>
+<p><strong>问题四：ld: library not found for -lcrypto</strong></p>
+<pre><code class="language-bash">#指定库路径 -L/usr/local/opt/openssl/lib
+make Image ARCH=arm64 CROSS_COMPILE=aarch64-unknown-linux-gnu- HOSTCFLAGS=&quot;-I/macos -I/usr/local/Cellar/openssl@3/3.0.3/include -L/usr/local/opt/openssl/lib&quot;
+</code></pre>
+<p><strong>问题五：error: member reference base type 'typeof (((struct tee_client_device_id )0)-&gt;uuid)' (aka 'unsigned char [16]') is not a structure or union uuid.b[15])</strong></p>
+<p>从错误提示上看，是由于macOS环境已经定义了uuid_t从而引发了重复定义的错误</p>
+<p>修改uuid的定义方式：</p>
+<pre><code class="language-patch">diff --git a/scripts/mod/file2alias.c b/scripts/mod/file2alias.c
+index 2417dd1dee33..3477058781a3 100644
+--- a/scripts/mod/file2alias.c
++++ b/scripts/mod/file2alias.c
+@@ -42,9 +42,15 @@ typedef struct {
+ typedef struct {
+        __u8 b[16];
+ } uuid_le;
++
+ typedef struct {
+        __u8 b[16];
+-} uuid_t;
++} compat_uuid_t;
++
++#ifdef __APPLE__
++#define uuid_t compat_uuid_t
++#endif
++
+ #define        UUID_STRING_LEN         36
+</code></pre>
+<h1>最终编译命令</h1>
+<pre><code class="language-bash">make Image ARCH=arm64 CROSS_COMPILE=aarch64-unknown-linux-gnu- HOSTCFLAGS=&quot;-I/macos -I/usr/local/Cellar/openssl@3/3.0.3/include -L/usr/local/opt/openssl/lib&quot; -j8
+</code></pre>
+<blockquote>
+<p>部分参考了Philon同学的经验：<a href="https://ixx.life/notes/cross-compile-linux-on-macos/">https://ixx.life/notes/cross-compile-linux-on-macos/</a></p>
+</blockquote>
+]]></content><link href="https://github.com/Jared-ZDC/Jared-ZDC.github.io/issues/8" rel="alternate"/><category term="wiki"/><published>2022-06-13T03:05:31+00:00</published></entry><entry><id>https://github.com/Jared-ZDC/Jared-ZDC.github.io/issues/7</id><title>内核中 “__context__” 含义浅析备忘</title><updated>2022-06-13T03:07:35.314225+00:00</updated><content type="html"><![CDATA[<h1>背景</h1>
 <p>在分析Linux RCU lock的时候，发现每次在rcu_read_lock/rcu_read_unlock的时候，都会成对出现__acquire/<strong>release接口，这两个接口的定义都是__context</strong>，但是在内核中并没有找到出处。</p>
 <h1>备忘</h1>
 <p>查阅了相关资料，原来这个东西是给Linux代码静态检查工具使用的，为了保证lock/unlock必须成对出现使用的。
@@ -18,7 +138,7 @@
 | __release(x) | <strong>context</strong>(x, -1) | 与 __acquire(x) 相反 |
 | __cond_lock(x,c)	| ((c) ? ({ __acquire(x); 1; }) : 0)	| 参数c 不为0时,引用计数 + 1, 并返回1 |</p>
 <p>其中 __acquires(x) 和 __releases(x), __acquire(x) 和 __release(x) 必须配对使用, 否则 Sparse 会给出警告</p>
-]]></content><link href="https://github.com/Jared-ZDC/Jared-ZDC.github.io/issues/7" rel="alternate"/><category term="wiki"/><published>2022-05-23T02:45:45+00:00</published></entry><entry><id>https://github.com/Jared-ZDC/Jared-ZDC.github.io/issues/6</id><title>Intel PAUSE指令功效分析</title><updated>2022-05-23T02:48:11.001101+00:00</updated><content type="html"><![CDATA[<h1>PAUSE指令</h1>
+]]></content><link href="https://github.com/Jared-ZDC/Jared-ZDC.github.io/issues/7" rel="alternate"/><category term="wiki"/><published>2022-05-23T02:45:45+00:00</published></entry><entry><id>https://github.com/Jared-ZDC/Jared-ZDC.github.io/issues/6</id><title>Intel PAUSE指令功效分析</title><updated>2022-06-13T03:07:35.419180+00:00</updated><content type="html"><![CDATA[<h1>PAUSE指令</h1>
 <p>Improves the performance of spin-wait loops. When executing a “spin-wait loop,” processors will suffer a severe performance penalty when exiting the loop because it detects a possible memory order violation. The PAUSE instruction provides a hint to the processor that the code sequence is a spin-wait loop. The processor uses this hint to avoid the memory order violation in most situations, which greatly improves processor performance. For this reason, it is recommended that a PAUSE instruction be placed in all spin-wait loops.</p>
 <p>An additional function of the PAUSE instruction is to reduce the power consumed by a processor while executing a spin loop. A processor can execute a spin-wait loop extremely quickly, causing the processor to consume a lot of power while it waits for the resource it is spinning on to become available. Inserting a pause instruction in a spin-wait loop greatly reduces the processor’s power consumption.</p>
 <p>翻译成人话的意思是，其功效主要是两个：</p>
@@ -82,7 +202,7 @@ nopause时， redis rps只能达到15万左右， 带了pause指令后， redis�
 <li>PAUSE指令在多线程的时候，还能减少对共享内存的访问，减少同cache的竞争，从而提升其它业务核的性能</li>
 <li>PAUSE指令能够极大的降低功耗</li>
 </ul>
-]]></content><link href="https://github.com/Jared-ZDC/Jared-ZDC.github.io/issues/6" rel="alternate"/><category term="技术分析"/><published>2022-05-20T07:02:17+00:00</published></entry><entry><id>https://github.com/Jared-ZDC/Jared-ZDC.github.io/issues/5</id><title>nginx测试异常分析</title><updated>2022-05-23T02:48:11.174808+00:00</updated><content type="html"><![CDATA[<h1>总结</h1>
+]]></content><link href="https://github.com/Jared-ZDC/Jared-ZDC.github.io/issues/6" rel="alternate"/><category term="技术分析"/><published>2022-05-20T07:02:17+00:00</published></entry><entry><id>https://github.com/Jared-ZDC/Jared-ZDC.github.io/issues/5</id><title>nginx测试异常分析</title><updated>2022-06-13T03:07:35.526269+00:00</updated><content type="html"><![CDATA[<h1>总结</h1>
 <p>在Intel上测试nginx发现了一个比较奇怪的现象，服务端压测时候，负载总是无法压上去，反而客户端随着核数增加，负载几乎100%，并且主要集中在sys上。</p>
 <pre><code class="language-bash"># 服务端测试命令：
 ​
@@ -145,7 +265,7 @@ taskset -c 8-31 /home/nginx-test/httpress-1.1.0/bin/Release/httpress -n 1000000 
 使用netstat | grep TIME_WAIT确定一下数量： </p>
 <p><img src="https://user-images.githubusercontent.com/17999499/167792381-6435f3e6-ef5c-4603-9619-c93d4ff1bd9f.png" alt="image" /></p>
 <p>发现基本上已经达到极限了， 主要还是由于当前的吞吐量太高 ，已经端口复用已经无法承载了。</p>
-]]></content><link href="https://github.com/Jared-ZDC/Jared-ZDC.github.io/issues/5" rel="alternate"/><category term="问题定位"/><published>2022-05-11T07:24:13+00:00</published></entry><entry><id>https://github.com/Jared-ZDC/Jared-ZDC.github.io/issues/4</id><title>tmux + vimrc + build.sh备忘</title><updated>2022-05-23T02:48:11.335850+00:00</updated><content type="html"><![CDATA[<h2>tmux.conf</h2>
+]]></content><link href="https://github.com/Jared-ZDC/Jared-ZDC.github.io/issues/5" rel="alternate"/><category term="问题定位"/><published>2022-05-11T07:24:13+00:00</published></entry><entry><id>https://github.com/Jared-ZDC/Jared-ZDC.github.io/issues/4</id><title>tmux + vimrc + build.sh备忘</title><updated>2022-06-13T03:07:35.628931+00:00</updated><content type="html"><![CDATA[<h2>tmux.conf</h2>
 <pre><code class="language-bash">freejared@B-T2HTMD6R-1928 ~ % cat ~/.tmux.conf 
 # Send prefix
 set-option -g prefix C-a
@@ -201,7 +321,7 @@ cscope -bkq -i cscope.files
 ctags -R .
 freejared@B-T2HTMD6R-1928 Code % 
 </code></pre>
-]]></content><link href="https://github.com/Jared-ZDC/Jared-ZDC.github.io/issues/4" rel="alternate"/><category term="wiki"/><published>2022-05-06T02:29:49+00:00</published></entry><entry><id>https://github.com/Jared-ZDC/Jared-ZDC.github.io/issues/3</id><title>现代处理器性能分析及优化-C01</title><updated>2022-05-23T02:48:11.498379+00:00</updated><content type="html"><![CDATA[<p>一直以来，工程师都有一个观念：“性能为王”，以前是，现在是，以后更是。</p>
+]]></content><link href="https://github.com/Jared-ZDC/Jared-ZDC.github.io/issues/4" rel="alternate"/><category term="wiki"/><published>2022-05-06T02:29:49+00:00</published></entry><entry><id>https://github.com/Jared-ZDC/Jared-ZDC.github.io/issues/3</id><title>现代处理器性能分析及优化-C01</title><updated>2022-06-13T03:07:35.738507+00:00</updated><content type="html"><![CDATA[<p>一直以来，工程师都有一个观念：“性能为王”，以前是，现在是，以后更是。</p>
 <p>根据<a href="https://www.domo.com/learn/data-neversleeps-5?aid=ogsm072517_1&amp;sf100871281=1">《Data Never Sleeps 5.0》</a>调查研究，世界上每天产生2.5万亿字节的数据，并且保持着每年25%的速度递增。在我们如今的社会生活中，信息产生的来源越来越多，信息交换的速度越来越快，推动了对更快软件（SW）和更快硬件（HW）的需求。简而言之，数据增长不仅对计算能力提出了更高的需求，而且对存储和网络系统也提出了更高需求。</p>
 <p>在PC时代，开发人员通常直接在操作系统之上编程，有时候还不可避免的需要直接参与控制硬件。随着世界进入云时代，软件堆栈变得更深更复杂。通过对底层硬件的高度抽象，大多数开发人员往往无需对于实际硬件的把控，直接基于分布式、虚拟化、微服务以及更高层次的开发环境进行开发，效率极大提高的同时，却也带来了消极的一面，导致现代应用程序对于硬件的亲和性逐渐降低。</p>
 <p>还有，幸亏于摩尔定律的有效性，软件程序员这几十年来一直“轻松愉快”。过去，一些软件供应商更愿意等待新一代硬件来加快应用程序的速度，而不花费人力资源来改进代码。但是，花无百日红，如今摩尔定律正在逐渐失效，通过查看图1，我们可以看到单线程性能增长正在放缓，想要再通过简单的ScalUp的方式提高性能，收益越来越小。</p>
@@ -343,14 +463,14 @@ freejared@B-T2HTMD6R-1928 Code %
 <li>软件优化应以强大的业务需求为后盾。开发人员应设定可量化的目标和指标，这些目标和指标必须可以用于衡量优化进展情况。</li>
 <li>预测某段代码的性能几乎是不可能的，因为影响性能的因素太多了。在进行软件优化时，开发人员不应依赖直觉，而应使用仔细的进行性能分析，大胆揣测，小心求证。</li>
 </ul>
-]]></content><link href="https://github.com/Jared-ZDC/Jared-ZDC.github.io/issues/3" rel="alternate"/><category term="现代处理器性能分析及优化"/><published>2022-03-30T08:15:02+00:00</published></entry><entry><id>https://github.com/Jared-ZDC/Jared-ZDC.github.io/issues/2</id><title>现代处理器性能分析及优化-C00</title><updated>2022-05-23T02:48:11.710285+00:00</updated><content type="html"><![CDATA[<p>最近在youtube上无意中看到Denis Bakhvalov的有关处理器性能分析优化的课程以及书籍，个人觉得这本书对于想入或者初入这个领域的技术人员有比较大的启发作用，因此萌生了想要翻译Denis 教材《Performance analysis and tuning on modern CPU》的想法，并通过翻译这本书，梳理这些年在通用CPU性能分析优化的一些经验、总结以及教训，希望能够对想要了解这个领域的同学们起到一定的作用。</p>
+]]></content><link href="https://github.com/Jared-ZDC/Jared-ZDC.github.io/issues/3" rel="alternate"/><category term="现代处理器性能分析及优化"/><published>2022-03-30T08:15:02+00:00</published></entry><entry><id>https://github.com/Jared-ZDC/Jared-ZDC.github.io/issues/2</id><title>现代处理器性能分析及优化-C00</title><updated>2022-06-13T03:07:35.879271+00:00</updated><content type="html"><![CDATA[<p>最近在youtube上无意中看到Denis Bakhvalov的有关处理器性能分析优化的课程以及书籍，个人觉得这本书对于想入或者初入这个领域的技术人员有比较大的启发作用，因此萌生了想要翻译Denis 教材《Performance analysis and tuning on modern CPU》的想法，并通过翻译这本书，梳理这些年在通用CPU性能分析优化的一些经验、总结以及教训，希望能够对想要了解这个领域的同学们起到一定的作用。</p>
 <h1>Denis简介</h1>
 <p><img src="https://easyperf.net/img/dendibakh_2020_250px.jpeg" alt="Denis头像" />
 Denis是英特尔的高级开发人员，主要负责通过C++编译器为各种不同的体系结构程序进行编译优化。其工作及兴趣方向主要是编译器、性能优化相关的工程。从2008年开始，作为软件工程师，主要从事于开发桌面应用程序、嵌入式开发、性能分析和编译器开发。2016年开始撰写<a href="http://easyperf.net">个人博客</a>，分享关于性能分析、C/C++编译器以及CPU微架构相关的经验总结（<em>笔者建议同学们有空可以浏览一下他的博客，里面提供了比较多的学习视频以及相关案例的讨论</em>） </p>
 <p>此外，Denis也是一个积极生活倡导者，在工作之余，他经常会跟朋友踢足球，网球，跑步，还有下棋。除此之外，Denis是两个漂亮女儿的父亲(<em>此处，笔者推荐一本书《软技能 代码之外的生存指南》，献给IT界的朋友们，希望各位在工作之余的生活足够多姿多彩</em>)。</p>
 <h1>笔者简介</h1>
 <p>笔者在华为从事相关处理器性能分析优化工作9年左右，主要参与了鲲鹏处理器的研发，包括性能分析、性能优化、benchmark验证分析以及BringUp相关的工作，因此在该领域有一定的经验以及心得，但仍然在这个领域内还是一个小学生，希望能够跟这个领域内的大牛们一起探讨学习</p>
-]]></content><link href="https://github.com/Jared-ZDC/Jared-ZDC.github.io/issues/2" rel="alternate"/><category term="现代处理器性能分析及优化"/><published>2022-03-30T03:38:59+00:00</published></entry><entry><id>https://github.com/Jared-ZDC/Jared-ZDC.github.io/issues/1</id><title>gradle https代理访问</title><updated>2022-05-23T02:48:11.864672+00:00</updated><content type="html"><![CDATA[<h2>背景</h2>
+]]></content><link href="https://github.com/Jared-ZDC/Jared-ZDC.github.io/issues/2" rel="alternate"/><category term="现代处理器性能分析及优化"/><published>2022-03-30T03:38:59+00:00</published></entry><entry><id>https://github.com/Jared-ZDC/Jared-ZDC.github.io/issues/1</id><title>gradle https代理访问</title><updated>2022-06-13T03:07:35.982369+00:00</updated><content type="html"><![CDATA[<h2>背景</h2>
 <p>由于公司的网络无法直接访问外网，在用gradle的时候，必须配置代理</p>
 <h2>代理配置</h2>
 <p>gradle的代理配置网上教程较多，这里基本上也是复制网上的基础配置，谨以此作为备案，以便后续查看</p>
